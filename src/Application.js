@@ -54,6 +54,18 @@ exports = Class(GC.Application, function () {
 			size: 44
 		});
 
+		this.tvLevel = new TextView({
+			superview: this.view,
+			text: '',
+			zIndex: 7,
+			color: '#332200',
+			x: 0,
+			y: 1110,
+			width: this.view.style.width,
+			height: 100,
+			size: 35
+		});
+
 		this.tvScore = new TextView({
 			superview: this.view,
 			text: '',
@@ -519,7 +531,7 @@ exports = Class(GC.Application, function () {
 		else if(this.state == 'moleing') {
 			this.state = 'waiting';
 			
-			// All mokles get their turn to take pieces.
+			// All moles get their turn to take pieces.
 			if(this.userMatched && !this.molesWent) {
 				this.molesWent = true;
 				var tile;
@@ -529,19 +541,44 @@ exports = Class(GC.Application, function () {
 						if(tile && tile.kind == this.moleKind) {
 							
 							// Find all the pieces that this mole could take.
-							var choices = [];
+							var badChoices = [];
+							var goodChoices = [];
 							for(var addY = -1; addY <= +1; addY++) {
 								for(var addX = -1; addX <= +1; addX++) {
 									if(addX == 0 || addY == 0) {
 										var tile2 = this.getFromGrid(gridX + addX, gridY + addY);
 										if(tile2 && tile2.kind != this.moleKind && !tile2.dying) {
-											choices.push(tile2);
+											
+											// Try to find a gem that is touching another of the same color.
+											// Because the mole wants to protect itself from a nearby match-3.
+											var foundAdjacent = false;
+											for(var addY2 = -1; addY2 <= +1; addY2++) {
+												for(var addX2 = -1; addX2 <= +1; addX2++) {
+													if(addX2 == 0 || addY2 == 0) {
+														var tile3 = this.getFromGrid(tile2.gridX + addX2, tile2.gridY + addY2);
+														if(tile3 && !tile3.dying && tile3.kind == tile2.kind && tile3 != tile2) {
+															foundAdjacent = true;
+															break;
+														}
+													}
+												}
+											}
+											
+											if(foundAdjacent) {
+												goodChoices.push(tile2);
+											} else {
+												badChoices.push(tile2);
+											}
 										}
 									}
 								}
 							}
 							
-							// This mole chooses a piece to take.
+							// This mole chooses a random piece to take. Good choices preferred.
+							var choices = goodChoices;
+							if(choices.length == 0) {
+								choices = badChoices;
+							}
 							if(choices.length > 0) {
 								var choiceIndex = Math.floor(Math.random() * choices.length);
 								var tile2 = choices[choiceIndex];
@@ -605,6 +642,7 @@ exports = Class(GC.Application, function () {
 		this.state = 'falling';
 		this.loops = 0;
 		this.winLoops = 0;
+		this.tvLevel.setText('Level ' + this.level);
 		this.tvScoreLabel.setText("SCORE");
 		this.tvScoreLabel._opts.color = '#FFCC55';
 		this.particles = [];
